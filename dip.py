@@ -6,6 +6,23 @@ import time
 import operator
 
 
+def getintinput(msg, min_int, max_int, def_int=5):
+    while True:
+        inp = input(msg)
+        if inp:
+            try:
+                int_inp = int(inp)
+                if int_inp < min_int or int_inp > max_int:
+                    print(f'Value {int_inp} out margin!')
+                else:
+                    return int_inp
+            except ValueError:
+                print('Bad value', inp)
+        else:
+            return def_int
+        print('Try again!')
+
+
 class VKpop:
     def __init__(self, token: str):
         self.token = token
@@ -17,13 +34,13 @@ class VKpop:
         self.params_users = 'user_ids'
         self.method_utils = 'utils.resolveScreenName'
         self.params_utils = 'screen_name'
-        self.params = 'extended=1&photo_sizes=1&v=5.77'
+        self.params = 'extended=1&photo_sizes=1&v=5.130'
         self.dict_photo = []
 
     def set_user_id(self, user_input):
         if user_input.isdigit():
             params = f'user_ids={user_input}&fields=name'
-            s_req = f'{self.url}/method/{self.method_users}?{params}&access_token={self.token}&v=5.77'
+            s_req = f'{self.url}/method/{self.method_users}?{params}&access_token={self.token}&v=5.130'
             res = requests.get(s_req)
             data_user = json.loads(res.text)
             if str(data_user['response'][0]['id']) == user_input:
@@ -33,7 +50,7 @@ class VKpop:
                 return
         else:
             params = f'screen_name={user_input}'
-            s_req = f'{self.url}/method/{self.method_utils}?{params}&access_token={self.token}&v=5.77'
+            s_req = f'{self.url}/method/{self.method_utils}?{params}&access_token={self.token}&v=5.130'
             res = requests.get(s_req)
             data_user = json.loads(res.text)
             if data_user['response']['type'] == 'user':
@@ -55,7 +72,7 @@ class VKpop:
         res = requests.get(s_req)
         return json.loads(res.text)
 
-    def get_photo(self,  path_to_save, number_photo=5):
+    def get_photo(self,  path_to_save):
         i_off = 0
         i_count = 10
         list_of_photos = []
@@ -88,18 +105,27 @@ class VKpop:
                 cur_photo = [file_name, file_size_type, file_height * file_width, file_likes, file_url]
                 list_of_photos.append(cur_photo)
             i_off += i_count
-        list_of_photos.sort(key=operator.itemgetter(2), reverse=True)
-        for i in range(number_photo):
-            self.dict_photo.append({'file_name': list_of_photos[i][0], 'size': list_of_photos[i][1]})
-            api = requests.get(list_of_photos[i][4])
-            file_spec = path_to_save / list_of_photos[i][0]
-            with open(f'{file_spec}', 'wb') as file:
-                file.write(api.content)
-            time.sleep(0.1)
-        file_spec = path_to_save / 'photo_file.json'
-        with open(file_spec, "w") as write_file:
-            json.dump(list_of_photos, write_file)
-        return self.dict_photo
+        if len(list_of_photos):
+            list_of_photos.sort(key=operator.itemgetter(2), reverse=True)
+            print(f'Collect information about {len(list_of_photos)} photos')
+            que = f'How many biggest photos wish you save in YD [5]?: '
+            number_photo = getintinput(que, 0, len(list_of_photos))
+            if number_photo:
+                for i in range(number_photo):
+                    self.dict_photo.append({'file_name': list_of_photos[i][0], 'size': list_of_photos[i][1]})
+                    api = requests.get(list_of_photos[i][4])
+                    file_spec = path_to_save / list_of_photos[i][0]
+                    with open(f'{file_spec}', 'wb') as file:
+                        file.write(api.content)
+                    time.sleep(0.1)
+                file_spec = path_to_save / 'photo_file.json'
+                with open(file_spec, "w") as write_file:
+                    json.dump(list_of_photos, write_file)
+                    return self.dict_photo
+            else:
+                return None
+        else:
+            return None
 
 
 class YaUploader:
@@ -142,15 +168,17 @@ if __name__ == '__main__':
     vk_user = input('Enter <user_id> or <screen_name> for VK member: ')
     if downloader.set_user_id(vk_user):
         path_dir = Path.cwd() / 'images'
-        vk_count_photo = int(input('Enter count of photo saved from VK member albums: '))
-        file_list = downloader.get_photo( path_dir, vk_count_photo)
-        token_yd = '...'
-        uploader = YaUploader(token_yd)
-        yd_save_folder = input('Enter YD folder name for saved photo: ')
-        if uploader.set_dest_path(yd_save_folder):
-            uploader.upload(path_dir, yd_save_folder,file_list)
-            print('Done')
+        file_list = downloader.get_photo( path_dir)
+        if file_list:
+            token_yd = '...'
+            uploader = YaUploader(token_yd)
+            yd_save_folder = input('Enter YD folder name for saved photo: ')
+            if uploader.set_dest_path(yd_save_folder):
+                uploader.upload(path_dir, yd_save_folder,file_list)
+                print('Done')
+            else:
+                print(f'Problem with folder for saved photo <{yd_save_folder}>')
         else:
-            print(f'Problem with folder for saved photo <{yd_save_folder}>')
+            print('User canceled operation or list of photos is empty')
     else:
         print(f'Problem with VK member <{vk_user}>')
