@@ -29,6 +29,7 @@ class VKpop:
         self.user_id = ''
         self.url = 'https://api.vk.com'
         self.method = 'photos.get'
+        self.album_id = 'profile'
         self.method_album = 'photos.getAlbums'
         self.method_users = 'users.get'
         self.params_users = 'user_ids'
@@ -43,6 +44,8 @@ class VKpop:
             s_req = f'{self.url}/method/{self.method_users}?{params}&access_token={self.token}&v=5.130'
             res = requests.get(s_req)
             data_user = json.loads(res.text)
+            print(res)
+            print(data_user)
             if str(data_user['response'][0]['id']) == user_input:
                 self.user_id = data_user['response'][0]['id']
                 return True
@@ -59,8 +62,8 @@ class VKpop:
             else:
                 return
 
-    def get_photo_info(self, album_id, offset=0, count=10):
-        params = f'user_id={self.user_id}&album_id={album_id}&{self.params}&access_token={self.token}' \
+    def get_photo_info(self, offset=0, count=10):
+        params = f'user_id={self.user_id}&album_id={self.album_id}&{self.params}&access_token={self.token}' \
                  f'&count={count}&offset={offset}'
         s_req = f'{self.url}/method/{self.method}?{params}'
         res = requests.get(s_req)
@@ -76,35 +79,37 @@ class VKpop:
         i_off = 0
         i_count = 10
         list_of_photos = []
-        data_album = self.get_album_info()
-        for album in data_album['response']['items']:
-            i_off = 0
-            i_count = 10
-            album_id = album['id']
-            data = self.get_photo_info(album_id, offset=i_off, count=i_count)
-            if not data['response']['items']:
-                break
-            for files in data['response']['items']:
-                photo_params = files['sizes'][-1]
-                file_size_type = photo_params['type']
-                file_height = int(photo_params['height'])
-                file_width = int(photo_params['width'])
-                file_url = photo_params['url']
-                file_path, *file_params = file_url.split('?')
-                file_name = file_path.split('/')[-1]
-                file_likes = files['likes']['count']
-                print('Read', file_name, file_size_type, file_height, file_width, file_likes)
-                time.sleep(0.1)
-                if file_likes == 0:
-                    time_st, ar = modf((time.time()))
-                    new_name = str(int(time_st * 1000000))
-                else:
-                    new_name = str(file_likes)
-                file_name = new_name + '.jpg'
-                print(file_name)
-                cur_photo = [file_name, file_size_type, file_height * file_width, file_likes, file_url]
-                list_of_photos.append(cur_photo)
-            i_off += i_count
+        while True:
+            data = self.get_photo_info(offset=i_off, count=i_count)
+            if 'error' in data.keys():
+                print(f"Error: {data['error']['error_msg']} [user_id = {self.user_id}]")
+                return None
+            elif 'response' in data.keys():
+                j_count = 0
+                for files in data['response']['items']:
+                    photo_params = files['sizes'][-1]
+                    file_size_type = photo_params['type']
+                    file_height = int(photo_params['height'])
+                    file_width = int(photo_params['width'])
+                    file_url = photo_params['url']
+                    file_path, *file_params = file_url.split('?')
+                    file_name = file_path.split('/')[-1]
+                    file_likes = files['likes']['count']
+                    print('Read', file_name, file_size_type, file_height, file_width, file_likes)
+                    time.sleep(0.1)
+                    if file_likes == 0:
+                        time_st, ar = modf((time.time()))
+                        new_name = str(int(time_st * 1000000))
+                    else:
+                        new_name = str(file_likes)
+                    file_name = new_name + '.jpg'
+                    print(file_name)
+                    cur_photo = [file_name, file_size_type, file_height * file_width, file_likes, file_url]
+                    list_of_photos.append(cur_photo)
+                    j_count += 1
+                if j_count == 0:
+                    break
+            i_off += j_count
         if len(list_of_photos):
             list_of_photos.sort(key=operator.itemgetter(2), reverse=True)
             print(f'Collect information about {len(list_of_photos)} photos')
