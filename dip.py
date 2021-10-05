@@ -44,8 +44,8 @@ class VKpop:
             s_req = f'{self.url}/method/{self.method_users}?{params}&access_token={self.token}&v=5.130'
             res = requests.get(s_req)
             data_user = json.loads(res.text)
-            print(res)
-            print(data_user)
+            # print(res)
+            # print(data_user)
             if str(data_user['response'][0]['id']) == user_input:
                 self.user_id = data_user['response'][0]['id']
                 return True
@@ -66,12 +66,6 @@ class VKpop:
         params = f'user_id={self.user_id}&album_id={self.album_id}&{self.params}&access_token={self.token}' \
                  f'&count={count}&offset={offset}'
         s_req = f'{self.url}/method/{self.method}?{params}'
-        res = requests.get(s_req)
-        return json.loads(res.text)
-
-    def get_album_info(self):
-        params = f'user_id={self.user_id}&{self.params}&access_token={self.token}'
-        s_req = f'{self.url}/method/{self.method_album}?{params}'
         res = requests.get(s_req)
         return json.loads(res.text)
 
