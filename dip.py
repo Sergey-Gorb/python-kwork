@@ -26,7 +26,7 @@ def getintinput(msg, min_int, max_int, def_int=5):
 class VKpop:
     def __init__(self, token: str):
         self.token = token
-        self.user_id = ''
+        self.owner_id = ''
         self.url = 'https://api.vk.com'
         self.method = 'photos.get'
         self.album_id = 'profile'
@@ -38,7 +38,7 @@ class VKpop:
         self.params = 'extended=1&photo_sizes=1&v=5.130'
         self.dict_photo = []
 
-    def set_user_id(self, user_input):
+    def set_owner_id(self, user_input):
         if user_input.isdigit():
             params = f'user_ids={user_input}&fields=name'
             s_req = f'{self.url}/method/{self.method_users}?{params}&access_token={self.token}&v=5.130'
@@ -47,7 +47,7 @@ class VKpop:
             # print(res)
             # print(data_user)
             if str(data_user['response'][0]['id']) == user_input:
-                self.user_id = data_user['response'][0]['id']
+                self.owner_id = data_user['response'][0]['id']
                 return True
             else:
                 return
@@ -57,26 +57,26 @@ class VKpop:
             res = requests.get(s_req)
             data_user = json.loads(res.text)
             if data_user['response']['type'] == 'user':
-                self.user_id = data_user['response']['object_id']
+                self.owner_id = data_user['response']['object_id']
                 return True
             else:
                 return
 
     def get_photo_info(self, offset=0, count=10):
-        params = f'user_id={self.user_id}&album_id={self.album_id}&{self.params}&access_token={self.token}' \
+        params = f'owner_id={self.owner_id}&album_id={self.album_id}&{self.params}&access_token={self.token}' \
                  f'&count={count}&offset={offset}'
         s_req = f'{self.url}/method/{self.method}?{params}'
         res = requests.get(s_req)
         return json.loads(res.text)
 
-    def get_photo(self,  path_to_save):
+    def get_photo(self, path_to_save):
         i_off = 0
         i_count = 10
         list_of_photos = []
         while True:
             data = self.get_photo_info(offset=i_off, count=i_count)
             if 'error' in data.keys():
-                print(f"Error: {data['error']['error_msg']} [user_id = {self.user_id}]")
+                print(f"Error: {data['error']['error_msg']} [owner_id] = {self.owner_id}")
                 return None
             elif 'response' in data.keys():
                 j_count = 0
@@ -134,7 +134,7 @@ class YaUploader:
         self.headers = {'Content-Type': 'application/json', 'Accept': 'application/json',
                         'Authorization': f'OAuth {token}'}
 
-    def set_dest_path(self,save_path):
+    def set_dest_path(self, save_path):
         """Метод проверяет наличие папки save_path и, при необходимости создает ее"""
         res = requests.get(f'{self.url}?path=%2F{save_path}&preview_crop=true', headers=self.headers)
         if res.status_code == 404:
@@ -163,17 +163,18 @@ class YaUploader:
 
 if __name__ == '__main__':
     token_vk = '...'
+    token_vk = '2ed4994139addec3f51843643fe25f35b8251b197bef321c715a18ce998c5b61f6e1c859cc10ec2f9c7dd'
     downloader = VKpop(token_vk)
-    vk_user = input('Enter <user_id> or <screen_name> for VK member: ')
-    if downloader.set_user_id(vk_user):
+    vk_user = input('Enter <owner_id> or <screen_name> for VK member: ')
+    if downloader.set_owner_id(vk_user):
         path_dir = Path.cwd() / 'images'
-        file_list = downloader.get_photo( path_dir)
+        file_list = downloader.get_photo(path_dir)
         if file_list:
             token_yd = '...'
             uploader = YaUploader(token_yd)
             yd_save_folder = input('Enter YD folder name for saved photo: ')
             if uploader.set_dest_path(yd_save_folder):
-                uploader.upload(path_dir, yd_save_folder,file_list)
+                uploader.upload(path_dir, yd_save_folder, file_list)
                 print('Done')
             else:
                 print(f'Problem with folder for saved photo <{yd_save_folder}>')
