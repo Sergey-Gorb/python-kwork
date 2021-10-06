@@ -163,7 +163,6 @@ class YaUploader:
 
 if __name__ == '__main__':
     token_vk = '...'
-    token_vk = '2ed4994139addec3f51843643fe25f35b8251b197bef321c715a18ce998c5b61f6e1c859cc10ec2f9c7dd'
     downloader = VKpop(token_vk)
     vk_user = input('Enter <owner_id> or <screen_name> for VK member: ')
     if downloader.set_owner_id(vk_user):
